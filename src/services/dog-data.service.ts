@@ -10,13 +10,14 @@ export interface DogProfile {
   size: DogSize;
   bio: string;
   imageUrl: string;
+  thumbnailUrl: string;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class DogDataService {
-  private initialProfiles: Omit<DogProfile, 'id' | 'imageUrl'>[] = [
+  private initialProfiles: Omit<DogProfile, 'id' | 'imageUrl' | 'thumbnailUrl'>[] = [
     { name: 'Max', age: 3, breed: 'Golden Retriever', size: 'Grande', bio: 'Me encanta perseguir pelotas y los largos paseos por el parque. Busco un amigo para compartir mis juguetes.' },
     { name: 'Bella', age: 2, breed: 'Poodle', size: 'Mediano', bio: 'Soy una diva a la que le encantan los mimos y los snacks gourmet. ¿Tienes buen gusto?' },
     { name: 'Rocky', age: 5, breed: 'Bulldog Francés', size: 'Pequeño', bio: 'Experto en siestas y en roncar fuerte. Mi pasatiempo favorito es comer.' },
@@ -47,9 +48,13 @@ export class DogDataService {
     const shuffled = this.shuffleArray(profilesWithIds);
 
     // Now, map the shuffled array to get new image URLs each time
-    return shuffled.map(profile => ({
-      ...profile,
-      imageUrl: `https://picsum.photos/seed/${profile.name}${Date.now()}/400/600`,
-    }));
+    return shuffled.map(profile => {
+      const seed = `${profile.name.replace(/\s/g, '')}${profile.id}`;
+      return {
+        ...profile,
+        imageUrl: `https://picsum.photos/seed/${seed}/400/600`,
+        thumbnailUrl: `https://picsum.photos/seed/${seed}/100`,
+      };
+    });
   }
 }

@@ -1,4 +1,7 @@
-<div class="absolute inset-0 z-20 bg-white dark:bg-slate-700 flex flex-col animate-slide-down">
+<div 
+  class="absolute inset-0 z-20 bg-white dark:bg-slate-700 flex flex-col"
+  [class.animate-slide-down]="!isClosing()"
+  [class.animate-slide-up]="isClosing()">
   <header class="p-4 flex items-center justify-between border-b border-gray-200 dark:border-slate-600 shrink-0">
     <h2 class="text-xl font-bold">Filtros</h2>
     <button (click)="closePanel()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-600">

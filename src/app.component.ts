@@ -1,11 +1,11 @@
-import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { DogProfile, DogDataService } from './services/dog-data.service';
 import { GeminiService } from './services/gemini.service';
 import { DogCardComponent } from './components/dog-card/dog-card.component';
-import { LoginComponent } from './components/login/login.component';
 import { EditProfileComponent } from './components/edit-profile/edit-profile.component';
 import { FiltersComponent, Filters } from './components/filters/filters.component';
+import { SplashComponent } from './components/splash/splash.component';
 
 export interface Message {
   sender: 'user' | 'dog';
@@ -42,19 +42,19 @@ const DEFAULT_FILTERS: Filters = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, NgOptimizedImage, DogCardComponent, LoginComponent, EditProfileComponent, FiltersComponent],
+  imports: [CommonModule, NgOptimizedImage, DogCardComponent, EditProfileComponent, FiltersComponent, SplashComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   private dogDataService = inject(DogDataService);
   private geminiService = inject(GeminiService);
   @ViewChild('chatContainer') private chatContainer?: ElementRef<HTMLDivElement>;
 
   // App state
-  isLoggedIn = signal<boolean>(false);
   currentView = signal<AppView>('swipe');
+  showSplash = signal(true);
   
   // User profile
   userProfile = signal<UserProfile>({
@@ -114,6 +114,12 @@ export class AppComponent {
     if (current.ageRange.min !== DEFAULT_FILTERS.ageRange.min || current.ageRange.max !== DEFAULT_FILTERS.ageRange.max) count++;
     return count;
   });
+
+  ngOnInit(): void {
+    setTimeout(() => {
+      this.showSplash.set(false);
+    }, 5000);
+  }
   
   constructor() {
     this.loadMatchesFromStorage();
@@ -131,12 +137,16 @@ export class AppComponent {
 
     // Save matches to localStorage whenever they change
     effect(() => {
-      this.saveMatchesToStorage(this.matches());
+      if (!this.showSplash()) { // Don't save initial empty state
+        this.saveMatchesToStorage(this.matches());
+      }
     });
     
      // Save user profile to localStorage whenever it changes
     effect(() => {
-      this.saveUserProfileToStorage(this.userProfile());
+      if (!this.showSplash()) { // Don't save initial state
+        this.saveUserProfileToStorage(this.userProfile());
+      }
     });
   }
 
@@ -194,16 +204,6 @@ export class AppComponent {
       this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
     }
   }
-
-  onLogin() {
-    this.isLoggedIn.set(true);
-  }
-
-  onLogout() {
-    this.isLoggedIn.set(false);
-    this.currentView.set('swipe');
-    this.selectedMatch.set(null);
-  }
   
   onSwipe(liked: boolean) {
     const swipedProfile = this.currentProfile();
@@ -224,8 +224,7 @@ export class AppComponent {
     this.matches.update(m => [newMatch, ...m]);
     
     this.showMatchNotification.set(profile);
-    setTimeout(() => this.showMatchNotification.set(null), 3000);
-
+    
     this.geminiService.generateIcebreaker(profile.name, profile.breed).then(icebreaker => {
       const firstMessage: Message = { sender: 'dog', text: icebreaker };
       this.matches.update(currentMatches => 
@@ -246,6 +245,19 @@ export class AppComponent {
         )
       );
     });
+  }
+  
+  chatWithNewMatch(dog: DogProfile) {
+    const match = this.matches().find(m => m.dog.id === dog.id);
+    if (match) {
+      this.setView('matches');
+      this.selectMatch(match);
+      this.dismissMatchNotification();
+    }
+  }
+
+  dismissMatchNotification() {
+    this.showMatchNotification.set(null);
   }
 
   setView(view: AppView) {

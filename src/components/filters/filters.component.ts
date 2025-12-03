@@ -24,6 +24,7 @@ export class FiltersComponent implements OnInit {
   close = output<void>();
   
   localFilters: WritableSignal<Filters>;
+  isClosing = signal(false);
 
   availableSizes: DogSize[] = ['Pequeño', 'Mediano', 'Grande'];
 
@@ -75,15 +76,27 @@ export class FiltersComponent implements OnInit {
   }
 
   applyFilters() {
-    this.apply.emit(this.localFilters());
+    this.isClosing.set(true);
+    setTimeout(() => {
+      this.apply.emit(this.localFilters());
+      this.isClosing.set(false); // Reset state
+    }, 300); // Match animation duration
   }
 
   resetFilters() {
-    this.reset.emit();
-    this.close.emit();
+    this.isClosing.set(true);
+    setTimeout(() => {
+      this.reset.emit();
+      this.close.emit();
+      this.isClosing.set(false);
+    }, 300);
   }
 
   closePanel() {
-    this.close.emit();
+    this.isClosing.set(true);
+    setTimeout(() => {
+      this.close.emit();
+      this.isClosing.set(false);
+    }, 300);
   }
 }
