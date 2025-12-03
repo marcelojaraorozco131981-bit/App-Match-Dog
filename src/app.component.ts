@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { DogProfile, DogDataService } from './services/dog-data.service';
-import { GeminiService } from './services/gemini.service';
+import { GeminiService, MapLocation } from './services/gemini.service';
 import { DogCardComponent } from './components/dog-card/dog-card.component';
 import { EditProfileComponent } from './components/edit-profile/edit-profile.component';
 import { FiltersComponent, Filters } from './components/filters/filters.component';
@@ -31,7 +31,7 @@ export interface UserProfile {
   breed: string;
 }
 
-type AppView = 'swipe' | 'matches' | 'profile' | 'editProfile';
+type AppView = 'swipe' | 'matches' | 'profile' | 'editProfile' | 'map' | 'search';
 
 const DEFAULT_FILTERS: Filters = {
   breed: 'all',
@@ -85,6 +85,11 @@ export class AppComponent implements OnInit {
   matches = signal<Match[]>([]);
   selectedMatch = signal<Match | null>(null);
   showMatchNotification = signal<DogProfile | null>(null);
+
+  // Map state
+  isMapLoading = signal(false);
+  mapError = signal<string | null>(null);
+  mapLocations = signal<MapLocation[]>([]);
 
   // UI State for image replacement
   imageSourceToReplaceIndex = signal<number | null>(null);
@@ -266,6 +271,9 @@ export class AppComponent implements OnInit {
     if (view !== 'matches') {
       this.selectedMatch.set(null);
     }
+    if (view === 'map') {
+      this.loadMapData();
+    }
   }
 
   selectMatch(match: Match | null) {
@@ -383,5 +391,42 @@ export class AppComponent implements OnInit {
     } else {
       this.closeImageSourceSelector();
     }
+  }
+
+  private loadMapData() {
+    if (this.mapLocations().length > 0) return; // Data already loaded
+
+    this.isMapLoading.set(true);
+    this.mapError.set(null);
+    this.mapLocations.set([]);
+
+    if (!navigator.geolocation) {
+      this.mapError.set("La geolocalización no es compatible con tu navegador.");
+      this.isMapLoading.set(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const locations = await this.geminiService.findNearbyDogPlaces(latitude, longitude);
+          this.mapLocations.set(locations);
+        } catch (error) {
+          console.error("Error getting map locations from Gemini:", error);
+          this.mapError.set("No se pudieron encontrar lugares cercanos. Intenta de nuevo.");
+        } finally {
+          this.isMapLoading.set(false);
+        }
+      },
+      (error) => {
+        let errorMessage = "No se pudo obtener tu ubicación.";
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = "Permiso de ubicación denegado. Actívalo para usar esta función.";
+        }
+        this.mapError.set(errorMessage);
+        this.isMapLoading.set(false);
+      }
+    );
   }
 }

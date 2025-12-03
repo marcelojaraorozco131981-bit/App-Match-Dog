@@ -1,8 +1,16 @@
 
 import { Injectable } from '@angular/core';
-import { GoogleGenAI, GenerateContentResponse } from '@google/genai';
+import { GoogleGenAI, GenerateContentResponse, Type } from '@google/genai';
 import { DogProfile } from './dog-data.service';
 import { Message } from '../app.component';
+
+export type MapLocationCategory = 'Parque para perros' | 'Clínica veterinaria' | 'Tienda de mascotas' | 'Alojamiento que admite mascotas';
+
+export interface MapLocation {
+  name: string;
+  address: string;
+  category: MapLocationCategory;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -59,6 +67,44 @@ export class GeminiService {
        console.error('Error calling Gemini API for chat reply:', error);
       // Fallback message
       return `¡Guau! Me distraje persiguiendo mi cola. ¿Qué decías?`;
+    }
+  }
+
+  async findNearbyDogPlaces(latitude: number, longitude: number): Promise<MapLocation[]> {
+    const prompt = `Basado en la latitud ${latitude} y longitud ${longitude}, encuentra lugares de interés para perros en un radio de 5km. 
+    Las categorías de interés son 'Parque para perros', 'Clínica veterinaria', 'Tienda de mascotas', y 'Alojamiento que admite mascotas'. 
+    Devuelve una lista de hasta 10 lugares.`;
+
+    try {
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                address: { type: Type.STRING },
+                category: { 
+                  type: Type.STRING,
+                  enum: ['Parque para perros', 'Clínica veterinaria', 'Tienda de mascotas', 'Alojamiento que admite mascotas'] 
+                }
+              },
+              required: ['name', 'address', 'category']
+            }
+          }
+        }
+      });
+      
+      const jsonText = response.text.trim();
+      return JSON.parse(jsonText) as MapLocation[];
+
+    } catch (error) {
+      console.error('Error calling Gemini API for map locations:', error);
+      throw new Error('Failed to fetch dog-friendly places.');
     }
   }
 }

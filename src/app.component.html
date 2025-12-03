@@ -17,11 +17,11 @@
           </button>
         </div>
         
-        <nav class="flex items-center bg-rose-100 dark:bg-slate-600 rounded-full p-1">
-          <button (click)="setView('swipe')" [class.bg-rose-500]="currentView() === 'swipe'" [class.text-white]="currentView() === 'swipe'" class="px-3 py-1 rounded-full text-sm font-semibold transition-colors duration-300">
+        <nav class="flex items-center bg-rose-100 dark:bg-slate-600 rounded-full p-1 text-xs sm:text-sm">
+          <button (click)="setView('swipe')" [class.bg-rose-500]="currentView() === 'swipe'" [class.text-white]="currentView() === 'swipe'" class="px-3 py-1 rounded-full font-semibold transition-colors duration-300">
             Descubrir
           </button>
-          <button (click)="setView('matches')" [class.bg-rose-500]="currentView() === 'matches'" [class.text-white]="currentView() === 'matches'" class="px-3 py-1 rounded-full text-sm font-semibold transition-colors duration-300 relative">
+           <button (click)="setView('matches')" [class.bg-rose-500]="currentView() === 'matches'" [class.text-white]="currentView() === 'matches'" class="px-3 py-1 rounded-full font-semibold transition-colors duration-300 relative">
             Matches
             @if (matches().length > 0) {
               <span class="absolute -top-1 -right-1 flex h-4 w-4">
@@ -30,14 +30,20 @@
               </span>
             }
           </button>
-          <button (click)="setView('profile')" [class.bg-rose-500]="currentView() === 'profile'" [class.text-white]="currentView() === 'profile'" class="px-3 py-1 rounded-full text-sm font-semibold transition-colors duration-300">
+          <button (click)="setView('map')" [class.bg-rose-500]="currentView() === 'map'" [class.text-white]="currentView() === 'map'" class="px-3 py-1 rounded-full font-semibold transition-colors duration-300">
+            Mapa
+          </button>
+          <button (click)="setView('search')" [class.bg-rose-500]="currentView() === 'search'" [class.text-white]="currentView() === 'search'" class="px-3 py-1 rounded-full font-semibold transition-colors duration-300">
+            Buscar
+          </button>
+          <button (click)="setView('profile')" [class.bg-rose-500]="currentView() === 'profile'" [class.text-white]="currentView() === 'profile'" class="px-3 py-1 rounded-full font-semibold transition-colors duration-300">
             Perfil
           </button>
         </nav>
       </div>
     </header>
     
-    <main class="w-full max-w-sm flex-grow flex flex-col relative bg-white dark:bg-slate-700 rounded-3xl shadow-xl">
+    <main class="w-full max-w-sm flex-grow flex flex-col relative bg-white dark:bg-slate-700 rounded-3xl shadow-xl min-h-0">
       
       @if (showFilters()) {
         <app-filters 
@@ -222,6 +228,68 @@
             <button (click)="setView('editProfile')" class="mt-8 w-full px-6 py-3 bg-slate-200 dark:bg-slate-600 text-gray-700 dark:text-gray-200 font-semibold rounded-full hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors">
               Editar Perfil
             </button>
+          </div>
+        }
+        @case ('map') {
+          <div class="w-full h-full flex flex-col relative animate-fade-in overflow-hidden">
+            <img ngSrc="https://storage.googleapis.com/maker-studio-project-images/pinder/map_bg.png" fill class="object-cover absolute inset-0 z-0 opacity-40 dark:opacity-20" alt="Map background">
+            <div class="relative z-10 flex flex-col h-full">
+              <header class="p-4 border-b border-gray-200 dark:border-slate-600 shrink-0 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm">
+                <h2 class="text-xl font-bold text-center">Lugares Cercanos para Perros</h2>
+              </header>
+
+              <div class="flex-grow overflow-y-auto p-4">
+                @if(isMapLoading()) {
+                  <div class="flex flex-col items-center justify-center h-full text-center">
+                    <svg class="animate-spin h-8 w-8 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="mt-4 text-gray-600 dark:text-gray-300">Buscando lugares increíbles...</p>
+                  </div>
+                } @else if(mapError(); as error) {
+                  <div class="flex flex-col items-center justify-center h-full text-center">
+                     <p class="text-red-500">{{ error }}</p>
+                     <button (click)="loadMapData()" class="mt-4 px-4 py-2 bg-rose-500 text-white rounded-full">Reintentar</button>
+                  </div>
+                } @else if (mapLocations().length > 0) {
+                  <ul class="space-y-3">
+                    @for(location of mapLocations(); track $index) {
+                      <li class="bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm p-4 rounded-xl shadow-md border dark:border-slate-600 flex items-start space-x-4">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center
+                          {{ location.category === 'Parque para perros' ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300' : '' }}
+                          {{ location.category === 'Clínica veterinaria' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : '' }}
+                          {{ location.category === 'Tienda de mascotas' ? 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300' : '' }}
+                          {{ location.category === 'Alojamiento que admite mascotas' ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300' : '' }}">
+                          @switch (location.category) {
+                            @case ('Parque para perros') { <span title="Parque para perros">🌳</span> }
+                            @case ('Clínica veterinaria') { <span title="Clínica veterinaria">⚕️</span> }
+                            @case ('Tienda de mascotas') { <span title="Tienda de mascotas">🛍️</span> }
+                            @case ('Alojamiento que admite mascotas') { <span title="Alojamiento">🏨</span> }
+                          }
+                        </div>
+                        <div>
+                          <h4 class="font-bold text-gray-800 dark:text-gray-100">{{ location.name }}</h4>
+                          <p class="text-sm text-gray-600 dark:text-gray-400">{{ location.address }}</p>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                   <div class="flex flex-col items-center justify-center h-full text-center">
+                     <p class="text-gray-600 dark:text-gray-300">No se encontraron lugares cercanos.</p>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+        @case ('search') {
+           <div class="w-full h-full flex items-center justify-center text-center p-8">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-700 dark:text-gray-200">Búsqueda Avanzada</h2>
+              <p class="mt-2 text-gray-500 dark:text-gray-400">¡Próximamente podrás buscar perfiles específicos aquí!</p>
+            </div>
           </div>
         }
         @case('editProfile') {
