@@ -1,0 +1,8 @@
+{
+  "name": "Pinder: Citas para Perritos",
+  "description": "Una divertida aplicación de citas al estilo Tinder para que los perros encuentren a su pareja de juegos perfecta. ¡Desliza, haz 'match' y deja que la IA rompa el hielo con un saludo ingenioso!",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}
